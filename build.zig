@@ -1,4 +1,5 @@
 const std = @import("std");
+const translate_c = @import("translate_c");
 
 // Although this function looks imperative, it does not perform the build
 // directly and instead it mutates the build graph (`b`) that will be then
@@ -21,6 +22,24 @@ pub fn build(b: *std.Build) void {
     // target and optimize options) will be listed when running `zig build --help`
     // in this directory.
 
+    const sdl_dependancy = b.dependency("sdl", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const sdl_lib = sdl_dependancy.artifact("SDL3");
+    const sdl_translated_headers = b.addTranslateC(.{
+        .root_source_file = b.addWriteFiles().add("c.h",
+            \\#define SDL_DISABLE_OLD_NAMES
+            \\#include <SDL3/SDL.h>
+            \\#include <SDL3/SDL_revision.h>
+            \\#define SDL_MAIN_HANDLED
+            \\#include <SDL3/SDL_main.h>
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    sdl_translated_headers.addIncludePath(sdl_lib.getEmittedIncludeTree());
+
     // This creates a module, which represents a collection of source files alongside
     // some compilation options, such as optimization mode and linked system libraries.
     // Zig modules are the preferred way of making Zig code available to consumers.
@@ -40,6 +59,8 @@ pub fn build(b: *std.Build) void {
         // which requires us to specify a target.
         .target = target,
     });
+    mod.linkLibrary(sdl_lib);
+    mod.addImport("sdl", sdl_translated_headers.createModule());
 
     // Here we define an executable. An executable needs to have a root module
     // which needs to expose a `main` function. While we could add a main function
@@ -53,7 +74,7 @@ pub fn build(b: *std.Build) void {
     // If instead your goal is to create an executable, consider if users might
     // be interested in also being able to embed the core functionality of your
     // program in their own executable in order to avoid the overhead involved in
-    // subprocessing your CLI tool.
+    // subprocessing your CLI toconst sdl_lib = sdl_dep.artifact("SDL3");
     //
     // If neither case applies to you, feel free to delete the declaration you
     // don't need and to put everything under a single module.
