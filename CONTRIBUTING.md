@@ -43,7 +43,11 @@ Before building `g-engine`, ensure you have the following installed on your syst
      zig version
      ```
 2. **System Dependencies (SDL3)**:
-   - `g-engine` uses SDL3. While Zig fetches SDL3 source packages automatically, your system must have development libraries for audio and display drivers (on Linux: Wayland/X11, ALSA/PulseAudio/PipeWire development headers, pkg-config, etc.).
+   - `g-engine` uses SDL3 and targets **Linux**, **macOS**, and **Windows**.
+   - While Zig fetches SDL3 source packages automatically:
+     - On **Linux**: Your system must have development libraries for audio and display drivers (Wayland/X11, ALSA/PulseAudio/PipeWire development headers, pkg-config, etc.).
+     - On **macOS**: Standard developer tools and frameworks.
+     - On **Windows**: Standard Windows SDK and C runtime.
 
 ---
 
@@ -66,14 +70,14 @@ Before building `g-engine`, ensure you have the following installed on your syst
 
 ### Code Formatting
 
-All Zig code must be formatted using the official Zig formatter before submitting a contribution:
+All Zig code and build definition files must be formatted using the official Zig formatter before submitting a contribution:
 
 ```bash
-# Check if code adheres to standard formatting
-zig fmt --check src/
+# Check if source and build files adhere to standard formatting
+zig fmt --check src/ build.zig build.zig.zon
 
-# Auto-format all source files
-zig fmt src/
+# Auto-format all source and build files
+zig fmt src/ build.zig build.zig.zon
 ```
 
 ### Building
@@ -107,10 +111,16 @@ zig build run -- [arguments...]
 
 ### Running Tests
 
-Run all unit and integration tests:
+Run all unit and integration tests (Debug mode):
 
 ```bash
 zig build test
+```
+
+We also recommend running tests with `ReleaseSafe` optimization to catch safety issues under compiler optimizations (matching our CI pipeline):
+
+```bash
+zig build test -Doptimize=ReleaseSafe
 ```
 
 Make sure all tests pass without errors or memory leaks before committing.
@@ -181,9 +191,10 @@ Closes #42
 ### PR Guidelines & Checklist
 
 Before opening a Pull Request:
-- [ ] Code is formatted with `zig fmt src/`.
+- [ ] Code is formatted with `zig fmt src/ build.zig build.zig.zon`.
 - [ ] Project builds cleanly with `zig build`.
-- [ ] All tests pass with `zig build test`.
+- [ ] All tests pass locally with `zig build test` (and ideally `zig build test -Doptimize=ReleaseSafe`).
+- [ ] Note: CI automatically runs tests under both `Debug` and `ReleaseSafe` on Linux.
 - [ ] Relevant tests are added or updated for new code / bug fixes.
 - [ ] Documentation is updated if public APIs or user workflows change.
 - [ ] Commit history is clean and focused.
