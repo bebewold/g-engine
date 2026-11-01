@@ -1,0 +1,44 @@
+name: Technical Task
+description: Track technical debt, CI/CD, maintenance, or infrastructure work
+title: "[Task]: "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for maintenance, CI/CD, tooling, refactoring, or infrastructure tasks.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Task Summary
+      description: A concise overview of the technical task or maintenance work.
+      placeholder: Describe the technical work to be performed...
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation & Context
+      description: Why is this task needed? (e.g. improve developer experience, protect branches, automate builds)
+      placeholder: Explain the motivation...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Action Items / Acceptance Criteria
+      description: List the technical steps or criteria required to consider this task completed.
+      value: |
+        - [ ] Step 1
+        - [ ] Step 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: References, architecture diagrams, or links to relevant documentation.

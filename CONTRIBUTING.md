@@ -139,6 +139,14 @@ We are happy to discuss new features or architectural improvements:
 
 ---
 
+## Technical Tasks & Maintenance
+
+For refactoring, CI/CD improvements, tooling, or infrastructure work:
+1. Open an issue using the **Technical Task** template.
+2. Clearly describe the motivation and outline the actionable acceptance criteria.
+
+---
+
 ## Submitting Pull Requests
 
 ### Branch Naming
