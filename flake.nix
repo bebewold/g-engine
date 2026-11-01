@@ -11,14 +11,14 @@
     flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ] (system:
       let
         pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ zig.overlays.default ];
+            inherit system;
+            overlays = [ zig.overlays.default ];
         };
 
         RUNTIME_LIBS = with pkgs; [
-          sdl3
-          libGL
-          vulkan-loader
+            libGL
+            vulkan-loader
+            xorg.libX11
         ];
       in
       {
