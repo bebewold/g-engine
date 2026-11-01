@@ -1,0 +1,63 @@
+name: Bug Report
+description: Create a report to help us improve and fix issues
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please check if the problem has already been reported before submitting.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the problem...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior.
+      placeholder: |
+        1. Run 'zig build run -- ...'
+        2. Press '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: input
+    id: zig-version
+    attributes:
+      label: Zig Version
+      description: Output of `zig version`
+      placeholder: e.g. 0.17.0-dev.xxx
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System & Hardware
+      description: Your OS, distribution and architecture
+      placeholder: e.g. Arch Linux (x86_64), Ubuntu 24.04, macOS Sequoia (Apple Silicon)
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal Logs / Backtraces
+      description: Please copy and paste any crash output or stack traces.
+      render: shell
