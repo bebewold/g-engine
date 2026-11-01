@@ -19,13 +19,13 @@
 
 <!-- Describe the steps taken to verify your changes. Include details of your test environment (OS, Zig version). -->
 
-- [ ] Automated tests added/updated and passing (`zig build test`)
+- [ ] Automated tests added/updated and passing (`zig build test`, optionally with `-Doptimize=ReleaseSafe`)
 - [ ] Manually tested via `zig build run`
 - Other (specify):
 
 ## Checklist
 
-- [ ] My code follows the code style of this project (`zig fmt --check src/` passes).
+- [ ] My code follows the code style of this project (`zig fmt --check src/ build.zig build.zig.zon` passes).
 - [ ] I have performed a self-review of my own code.
 - [ ] I have commented my code, particularly in hard-to-understand areas.
 - [ ] I have updated relevant documentation accordingly.
