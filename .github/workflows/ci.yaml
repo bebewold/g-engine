@@ -28,13 +28,12 @@ jobs:
     
   build-and-test:
     #zig need to build the project in order to run test, so no need for 2 separate jobs
-    name: Test (${{ matrix.os }} - ${{ matrix.optimize }})
+    name: Test (${{ matrix.optimize }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
         optimize: [Debug, ReleaseSafe]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v2

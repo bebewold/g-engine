@@ -194,7 +194,7 @@ Before opening a Pull Request:
 - [ ] Code is formatted with `zig fmt src/ build.zig build.zig.zon`.
 - [ ] Project builds cleanly with `zig build`.
 - [ ] All tests pass locally with `zig build test` (and ideally `zig build test -Doptimize=ReleaseSafe`).
-- [ ] Note: CI automatically tests across **Linux**, **macOS**, and **Windows** under both `Debug` and `ReleaseSafe`.
+- [ ] Note: CI automatically runs tests under both `Debug` and `ReleaseSafe` on Linux.
 - [ ] Relevant tests are added or updated for new code / bug fixes.
 - [ ] Documentation is updated if public APIs or user workflows change.
 - [ ] Commit history is clean and focused.
