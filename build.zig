@@ -1,7 +1,6 @@
 const std = @import("std");
 const translate_c = @import("translate_c");
 
-
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -25,7 +24,7 @@ pub fn build(b: *std.Build) void {
     sdl_translated_headers.addIncludePath(sdl_lib.getEmittedIncludeTree());
 
     const mod = b.addModule("g_engine", .{
-       .root_source_file = b.path("src/root.zig"),
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
     });
     mod.linkLibrary(sdl_lib);
