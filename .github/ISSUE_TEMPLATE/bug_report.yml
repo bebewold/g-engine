@@ -51,7 +51,7 @@ body:
     attributes:
       label: Operating System & Hardware
       description: Your OS, distribution and architecture
-      placeholder: e.g. Arch Linux (x86_64), Ubuntu 24.04, macOS Sequoia (Apple Silicon)
+      placeholder: e.g. Ubuntu 24.04 (x86_64), macOS Sequoia (Apple Silicon), Windows 11 (x86_64)
     validations:
       required: true
 
