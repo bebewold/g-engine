@@ -75,20 +75,20 @@ pub const Engine = struct {
             sdl.SDL_Log("Init failed: %s", sdl.SDL_GetError());
             return error.InternalError;
         }
-    
+
         var window: ?*sdl.SDL_Window = null;
         var renderer: ?*sdl.SDL_Renderer = null;
-    
+
         if (!sdl.SDL_CreateWindowAndRenderer("Starting game", 800, 600, sdl.SDL_WINDOW_RESIZABLE, &window, &renderer)) {
             sdl.SDL_Log("Window / Renderer creation failed: %s", sdl.SDL_GetError());
             return error.InternalError;
         }
-    
+
         const win = window.?;
         const ren = renderer.?;
-    
+
         _ = sdl.SDL_SetRenderDrawColor(ren, 30, 30, 60, 255);
-    
+
         return Engine{
             .window = win,
             .renderer = ren,
@@ -96,4 +96,3 @@ pub const Engine = struct {
         };
     }
 };
-
