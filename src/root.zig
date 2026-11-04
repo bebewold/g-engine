@@ -69,30 +69,31 @@ pub const Engine = struct {
         _ = delta_time;
         // Game logic
     }
+
+    pub fn init() !Engine {
+        if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO)) {
+            sdl.SDL_Log("Init failed: %s", sdl.SDL_GetError());
+            return error.InternalError;
+        }
+    
+        var window: ?*sdl.SDL_Window = null;
+        var renderer: ?*sdl.SDL_Renderer = null;
+    
+        if (!sdl.SDL_CreateWindowAndRenderer("Starting game", 800, 600, sdl.SDL_WINDOW_RESIZABLE, &window, &renderer)) {
+            sdl.SDL_Log("Window / Renderer creation failed: %s", sdl.SDL_GetError());
+            return error.InternalError;
+        }
+    
+        const win = window.?;
+        const ren = renderer.?;
+    
+        _ = sdl.SDL_SetRenderDrawColor(ren, 30, 30, 60, 255);
+    
+        return Engine{
+            .window = win,
+            .renderer = ren,
+            .running = true,
+        };
+    }
 };
 
-pub fn init() !Engine {
-    if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO)) {
-        sdl.SDL_Log("Init failed: %s", sdl.SDL_GetError());
-        return error.InternalError;
-    }
-
-    var window: ?*sdl.SDL_Window = null;
-    var renderer: ?*sdl.SDL_Renderer = null;
-
-    if (!sdl.SDL_CreateWindowAndRenderer("Starting game", 800, 600, sdl.SDL_WINDOW_RESIZABLE, &window, &renderer)) {
-        sdl.SDL_Log("Window / Renderer creation failed: %s", sdl.SDL_GetError());
-        return error.InternalError;
-    }
-
-    const win = window.?;
-    const ren = renderer.?;
-
-    _ = sdl.SDL_SetRenderDrawColor(ren, 30, 30, 60, 255);
-
-    return Engine{
-        .window = win,
-        .renderer = ren,
-        .running = true,
-    };
-}
