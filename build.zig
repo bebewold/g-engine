@@ -1,5 +1,4 @@
 const std = @import("std");
-const translate_c = @import("translate_c");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -9,26 +8,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    const sdl_lib = sdl_dependancy.artifact("SDL3");
-    const sdl_translated_headers = b.addTranslateC(.{
-        .root_source_file = b.addWriteFiles().add("c.h",
-            \\#define SDL_DISABLE_OLD_NAMES
-            \\#include <SDL3/SDL.h>
-            \\#include <SDL3/SDL_revision.h>
-            \\#define SDL_MAIN_HANDLED
-            \\#include <SDL3/SDL_main.h>
-        ),
-        .target = target,
-        .optimize = optimize,
-    });
-    sdl_translated_headers.addIncludePath(sdl_lib.getEmittedIncludeTree());
 
     const mod = b.addModule("g_engine", .{
         .root_source_file = b.path("src/engine/root.zig"),
         .target = target,
     });
-    mod.linkLibrary(sdl_lib);
-    mod.addImport("sdl", sdl_translated_headers.createModule());
+    mod.addImport("sdl", sdl_dependancy.module("sdl3"));
 
     const exe = b.addExecutable(.{
         .name = "game",
