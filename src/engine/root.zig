@@ -7,23 +7,27 @@ window: *sdl.SDL_Window,
 renderer: *sdl.SDL_Renderer,
 running: bool,
 
+player: Player = .init,
+
 pub fn run(self: *Engine) void {
     const target_fps: u32 = 60;
     const FRAME_TIME_TARGET: u64 = 1000 / target_fps;
     var frame_start: u64 = undefined;
-    var delta_time: f64 = 0.0;
+    var delta_time: f32 = 0.0;
 
     while (self.running) {
         frame_start = sdl.SDL_GetTicks();
 
-        if (!self.handleEvents()) break;
+        self.handleEvents();
+        if (!self.running) break;
 
         // Game logic update
         self.update(delta_time);
 
+        _ = sdl.SDL_RenderClear(self.renderer);
+        try self.player.render(self.renderer);
         // Apply changes to screen
         _ = sdl.SDL_SetRenderDrawColor(self.renderer, 30, 30, 60, 255);
-        _ = sdl.SDL_RenderClear(self.renderer);
         _ = sdl.SDL_RenderPresent(self.renderer);
 
         // Frame timing & delay calculation
@@ -32,7 +36,7 @@ pub fn run(self: *Engine) void {
         if (frame_time < FRAME_TIME_TARGET) {
             sdl.SDL_Delay(@intCast(FRAME_TIME_TARGET - frame_time));
         }
-        delta_time = @as(f64, @floatFromInt(sdl.SDL_GetTicks() - frame_start)) / 1000;
+        delta_time = @as(f32, @floatFromInt(sdl.SDL_GetTicks() - frame_start)) / 1000;
     }
 }
 
@@ -42,32 +46,55 @@ pub fn shutdown(self: *Engine) void {
     sdl.SDL_Quit();
 }
 
-fn handleEvents(self: *Engine) bool {
+fn handleEvents(self: *Engine) void {
     var event: sdl.SDL_Event = undefined;
 
     while (sdl.SDL_PollEvent(&event)) {
         switch (event.type) {
             sdl.SDL_EVENT_QUIT => {
                 self.running = false;
-                return false;
+                return;
             },
             sdl.SDL_EVENT_KEY_DOWN => {
-                if (event.key.key == sdl.SDLK_ESCAPE) {
-                    self.running = false;
-                    return false;
+                switch (event.key.key) {
+                    sdl.SDLK_ESCAPE => {
+                        self.running = false;
+                        return;
+                    },
+                    sdl.SDLK_A => {
+                        self.player.direction.x = -1;
+                    },
+                    sdl.SDLK_D => {
+                        self.player.direction.x = 1;
+                    },
+                    sdl.SDLK_W => {
+                        self.player.direction.y = -1;
+                    },
+                    sdl.SDLK_S => {
+                        self.player.direction.y = 1;
+                    },
+                    else => {},
+                }
+            },
+            sdl.SDL_EVENT_KEY_UP => {
+                switch (event.key.key) {
+                    sdl.SDLK_A, sdl.SDLK_D => {
+                        self.player.direction.x = 0;
+                    },
+                    sdl.SDLK_W, sdl.SDLK_S => {
+                        self.player.direction.y = 0;
+                    },
+                    else => {},
                 }
             },
             else => {},
         }
     }
-
-    return true;
 }
 
-fn update(self: *Engine, delta_time: f64) void {
-    _ = self;
-    _ = delta_time;
+fn update(self: *Engine, delta_time: f32) void {
     // Game logic
+    try self.player.update(delta_time);
 }
 
 pub fn init() !Engine {
@@ -94,3 +121,28 @@ pub fn init() !Engine {
         .running = true,
     };
 }
+
+const Player = struct {
+    bounds: sdl.SDL_FRect = .{
+        .x = 0,
+        .y = 0,
+        .h = 64,
+        .w = 32,
+    },
+    speed: f32 = 300.0,
+    direction: sdl.SDL_FPoint = .{
+        .x = 0,
+        .y = 0,
+    },
+
+    const init: Player = .{};
+
+    fn update(self: *Player, delta_time: f32) !void {
+        self.bounds.x += delta_time * self.speed * self.direction.x;
+        self.bounds.y += delta_time * self.speed * self.direction.y;
+    }
+    fn render(self: *Player, renderer: *sdl.SDL_Renderer) !void {
+        _ = sdl.SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        _ = sdl.SDL_RenderFillRect(renderer, &self.bounds);
+    }
+};
