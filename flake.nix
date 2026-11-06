@@ -19,6 +19,7 @@
             libGL
             vulkan-loader
             xorg.libX11
+            wayland
         ];
       in
       {
