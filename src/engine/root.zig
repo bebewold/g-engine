@@ -1,5 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl");
+const helper = @import("sdl_helper.zig");
 
 pub const Engine = @This();
 
@@ -9,7 +10,7 @@ running: bool,
 
 player: Player = .init,
 
-pub fn run(self: *Engine) void {
+pub fn run(self: *Engine) !void {
     const target_fps: u32 = 60;
     const FRAME_TIME_TARGET: u64 = 1000 / target_fps;
     var frame_start: u64 = undefined;
@@ -24,11 +25,20 @@ pub fn run(self: *Engine) void {
         // Game logic update
         self.update(delta_time);
 
-        _ = sdl.SDL_RenderClear(self.renderer);
-        try self.player.render(self.renderer);
         // Apply changes to screen
-        _ = sdl.SDL_SetRenderDrawColor(self.renderer, 30, 30, 60, 255);
-        _ = sdl.SDL_RenderPresent(self.renderer);
+        try helper.SDLCheck(
+            sdl.SDL_SetRenderDrawColor(self.renderer, 30, 30, 60, 255),
+            "error setting draw color",
+        );
+        try helper.SDLCheck(
+            sdl.SDL_RenderClear(self.renderer),
+            "error clearing the rendering buffer",
+        );
+        try self.player.render(self.renderer);
+        try helper.SDLCheck(
+            sdl.SDL_RenderPresent(self.renderer),
+            "error presenting the render buffer",
+        );
 
         // Frame timing & delay calculation
         const frame_time: u32 = @intCast(sdl.SDL_GetTicks() - frame_start);
