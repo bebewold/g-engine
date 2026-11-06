@@ -3,5 +3,6 @@ const g_engine = @import("g_engine");
 
 pub fn main() !void {
     var engine: g_engine.Engine = try .init();
-    engine.run();
+    defer engine.shutdown();
+    try engine.run();
 }
