@@ -1,20 +1,23 @@
 const std = @import("std");
 const sdl = @import("sdl");
+
 const helper = @import("sdl_helper.zig");
 
 pub const Engine = @This();
 
-window: *sdl.SDL_Window,
+window  : *sdl.SDL_Window,
 renderer: *sdl.SDL_Renderer,
+player  : Player,
+
 running: bool,
 
-player: Player = .init,
 
 pub fn run(self: *Engine) !void {
     const target_fps: u32 = 60;
     const FRAME_TIME_TARGET: u64 = 1000 / target_fps;
     var frame_start: u64 = undefined;
     var delta_time: f32 = 0.0;
+
 
     while (self.running) {
         frame_start = sdl.SDL_GetTicks();
@@ -34,7 +37,11 @@ pub fn run(self: *Engine) !void {
             sdl.SDL_RenderClear(self.renderer),
             "error clearing the rendering buffer",
         );
+
+        
         try self.player.render(self.renderer);
+        
+
         try helper.SDLCheck(
             sdl.SDL_RenderPresent(self.renderer),
             "error presenting the render buffer",
@@ -110,7 +117,7 @@ fn update(self: *Engine, delta_time: f32) void {
 pub fn init() !Engine {
     if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO)) {
         sdl.SDL_Log("Init failed: %s", sdl.SDL_GetError());
-        return error.InternalError;
+        return error.SDLError;
     }
     errdefer sdl.SDL_Quit();
 
@@ -119,19 +126,26 @@ pub fn init() !Engine {
 
     if (!sdl.SDL_CreateWindowAndRenderer("Starting game", 800, 600, sdl.SDL_WINDOW_RESIZABLE, &window, &renderer)) {
         sdl.SDL_Log("Window / Renderer creation failed: %s", sdl.SDL_GetError());
-        return error.InternalError;
+        return error.SDLError;
     }
 
     const win = window.?;
     const ren = renderer.?;
 
+    const player: Player = try .init(ren);
+
     return Engine{
-        .window = win,
+        .window   = win,
         .renderer = ren,
-        .running = true,
+        .running  = true,
+        .player   = player 
     };
 }
 
+
+
+// Main player 
+//
 const Player = struct {
     bounds: sdl.SDL_FRect = .{
         .x = 0,
@@ -139,20 +153,36 @@ const Player = struct {
         .h = 64,
         .w = 32,
     },
+    texture: *sdl.SDL_Texture, 
+
     speed: f32 = 300.0,
     direction: sdl.SDL_FPoint = .{
         .x = 0,
         .y = 0,
     },
 
-    const init: Player = .{};
+    pub fn init(renderer: *sdl.SDL_Renderer) !Player {
+        const surface = sdl.IMG_Load("./texture/sprite_sheet.png") orelse {
+            return error.SDLError;
+        };
+
+        const texture = sdl.SDL_CreateTextureFromSurface(renderer, surface) orelse {
+            return error.SDLError;
+        };
+
+        return Player{
+            .texture = texture,
+        };
+    }
 
     fn update(self: *Player, delta_time: f32) !void {
         self.bounds.x += delta_time * self.speed * self.direction.x;
         self.bounds.y += delta_time * self.speed * self.direction.y;
     }
     fn render(self: *Player, renderer: *sdl.SDL_Renderer) !void {
-        _ = sdl.SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-        _ = sdl.SDL_RenderFillRect(renderer, &self.bounds);
+        try helper.SDLCheck(
+            sdl.SDL_RenderTexture(renderer, self.texture, null, &self.bounds),
+            "couldn't render texture"
+        );
     }
 };
