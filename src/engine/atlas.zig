@@ -1,20 +1,18 @@
 const std = @import("std");
 const sdl = @import("sdl");
+const utils = @import("utils.zig");
 
-const Atlas = @This();
+pub const Atlas = @This();
 
 texture: *sdl.SDL_Texture,
-// texture_width : u16,
-// texture_height: u16, 
-arena  : std.heap.ArenaAllocator,
+texture_width : f32,
+texture_height: f32, 
 
 
 pub fn init(
     renderer : *sdl.SDL_Renderer,
     file_path: [:0]const u8,
-    allocator: std.mem.Allocator,
 ) !Atlas {
-    const arena = std.heap.ArenaAllocator.init(allocator);    
 
     const surface = sdl.IMG_Load(file_path);
     const texture = sdl.SDL_CreateTextureFromSurface(renderer, surface) orelse {
@@ -22,18 +20,17 @@ pub fn init(
     };
     sdl.SDL_DestroySurface(surface);
 
-
     // safety purposes
-    // need render.h
-    // var tex_w: c_int = 0;
-    // var tex_h: c_int = 0;
-    // try sdl.SDL_QueryTexture(texture, null, null, &tex_w, &tex_h);
+    var tex_w: f32 = 0;
+    var tex_h: f32 = 0;
+    if (!sdl.SDL_GetTextureSize(texture, &tex_w, &tex_h)) {
+        return error.SDLError;
+    }
 
     return Atlas {
        .texture = texture, 
-       //.texture_width = tex_w,
-       //.texture_height = tex_h,
-       .arena = arena,
+       .texture_width = tex_w,
+       .texture_height = tex_h,
     };
 }
 
@@ -42,53 +39,44 @@ pub fn init(
 // - on the same row
 // - the same length
 // else it will break
-pub fn get(
-    self: *Atlas,
-    coords: struct {x:u16, y:u16},
-    size  : struct {w:u16, h:u16},
-    length: u8
+pub fn slice(
+    self: Atlas,
+    allocator: std.mem.Allocator,
+    coords: struct {x:f32, y:f32},
+    size  : struct {w:f32, h:f32},
+    length: u8,
 ) ![] sdl.SDL_FRect {
-    // const end_x = coords.x + (size.w * length);
-    // const end_y = coords.y + size.h;
-       
-    // if ( end_x > self.texture_width) {
-    //     return error.AtlasOutOfBounds;
-    // }
-    // if ( end_y > self.texture_height) {
-    //     return error.AtlasOutOfBounds;
-    // }
+    const end_x = coords.x + (size.w * length);
+    const end_y = coords.y + size.h;
+    
+    if ( end_x > self.texture_width) {
+        return error.AtlasOutOfBounds;
+    }
+    if ( end_y > self.texture_height) {
+        return error.AtlasOutOfBounds;
+    }
 
-    const allocator = self.arena.allocator();
-    const slice = try allocator.alloc(sdl.SDL_FRect, length);
+    const arr = try allocator.alloc(sdl.SDL_FRect, length);
     
     for (0..length) |i| {
-        const x_pos = @as(f32, @floatFromInt(coords.x)) + (@as(f32, @floatFromInt(i)) * @as(f32, @floatFromInt(size.w)));
-        const y_pos = @as(f32, @floatFromInt(coords.y));
+        const x_pos = coords.x + (utils.FfromI(f32, i) * size.w);
+        const y_pos = coords.y;
 
-        slice[i] = sdl.SDL_FRect {
-            .x= x_pos,
-            .y= y_pos,
-            .w = @as(f32, @floatFromInt(size.w)),
-            .h = @as(f32, @floatFromInt(size.h)),
+        arr[i] = sdl.SDL_FRect {
+            .x = x_pos,
+            .y = y_pos,
+            .w = size.w,
+            .h = size.h,
         };
     }
     
-    return slice;
+    return arr;
 }
 
-
-pub fn deinit(self: *Atlas) !void {
-    self.arena.deinit();
-}
-
-
-
-const expect = std.testing.expect;
-
-
-test "init test" {
-    var window:  *sdl.SDL_Window = null;
-    var renderer:*sdl.SDL_Renderer = null;
+const testing = std.testing;
+test "init func" {
+    var window:  ?*sdl.SDL_Window = null;
+    var renderer:?*sdl.SDL_Renderer = null;
 
     if (!sdl.SDL_CreateWindowAndRenderer("Starting game", 800, 600, sdl.SDL_WINDOW_RESIZABLE, &window, &renderer)) {
         sdl.SDL_Log("Window / Renderer creation failed: %s", sdl.SDL_GetError());
@@ -96,14 +84,56 @@ test "init test" {
     }
     
 
-    const good_atlas: Atlas = .init(
-        renderer,
-        "texture/mock.png",
-        std.heap.page_allocator
+    _ = try Atlas.init(
+        renderer.?,
+        "./texture/mock.png",
     );
-    try expect(good_atlas);
 
 
-    const bad_atlas: Atlas = .init();
-    try expect(bad_atlas == error.SDLError);
+     try testing.expectError(error.SDLError, Atlas.init(
+        renderer.?,
+        "./texture/not_existant.png",
+    ));
+
 }
+
+test "slice func" {
+    const allocator = std.heap.page_allocator; // for the sake of testing
+
+    var window:  ?*sdl.SDL_Window = null;
+    var renderer:?*sdl.SDL_Renderer = null;
+
+    if (!sdl.SDL_CreateWindowAndRenderer("Starting game", 800, 600, sdl.SDL_WINDOW_RESIZABLE, &window, &renderer)) {
+        sdl.SDL_Log("Window / Renderer creation failed: %s", sdl.SDL_GetError());
+        return error.SDLError;
+    }
+    
+    const atlas: Atlas = try .init(
+        renderer.?,
+        "./texture/mock.png",
+    );
+
+    const animation = try atlas.slice(
+        allocator,
+        .{.x= 1, .y= 1},
+        .{.w= 16, .h= 16},
+        4
+    );
+    try testing.expect(animation.len == 4);
+
+    try testing.expectError(error.AtlasOutOfBounds, atlas.slice(
+        allocator,
+        .{.x= 1, .y= 1},
+        .{.w= 16, .h= 16},
+        250,
+    ));
+
+    try testing.expectError(error.AtlasOutOfBounds, atlas.slice(
+        allocator,
+        .{.x= 1, .y= 1},
+        .{.w= 16, .h= 40000000000},
+        1,
+    ));
+}
+
+
