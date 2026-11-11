@@ -2,6 +2,7 @@ const std = @import("std");
 const sdl = @import("sdl");
 const helper = @import("sdl_helper.zig");
 
+pub const Terrain = @import("Terrain.zig");
 pub const Engine = @This();
 
 window: *sdl.SDL_Window,
@@ -9,6 +10,7 @@ renderer: *sdl.SDL_Renderer,
 running: bool,
 
 player: Player = .init,
+terrain: Terrain,
 
 pub fn run(self: *Engine) !void {
     const target_fps: u32 = 60;
@@ -19,7 +21,7 @@ pub fn run(self: *Engine) !void {
     while (self.running) {
         frame_start = sdl.SDL_GetTicks();
 
-        self.handleEvents();
+        try self.handleEvents();
         if (!self.running) break;
 
         // Game logic update
@@ -56,12 +58,13 @@ pub fn shutdown(self: *Engine) void {
     sdl.SDL_Quit();
 }
 
-fn handleEvents(self: *Engine) void {
+fn handleEvents(self: *Engine) !void {
     var event: sdl.SDL_Event = undefined;
 
     while (sdl.SDL_PollEvent(&event)) {
         switch (event.type) {
             sdl.SDL_EVENT_QUIT => {
+                _ = event.quit;
                 self.running = false;
                 return;
             },
@@ -72,6 +75,21 @@ fn handleEvents(self: *Engine) void {
             sdl.SDL_EVENT_KEY_DOWN => {
                 const kb_event = event.key;
                 self.handleKeyDown(kb_event.key);
+            },
+            sdl.SDL_EVENT_WINDOW_RESIZED => {
+                _ = event.window;
+
+                var safe_area: sdl.SDL_Rect = undefined;
+                try helper.SDLCheck(
+                    sdl.SDL_GetWindowSafeArea(self.window, &safe_area),
+                    "could not get safe area",
+                );
+                self.terrain.bounds = .{
+                    .x = @floatFromInt(safe_area.x),
+                    .y = @floatFromInt(safe_area.y),
+                    .w = @floatFromInt(safe_area.w),
+                    .h = @floatFromInt(safe_area.h),
+                };
             },
             else => {},
         }
@@ -115,6 +133,7 @@ fn handleKeyUp(self: *Engine, key: c_uint) void {
 fn update(self: *Engine, delta_time: f32) void {
     // Game logic
     try self.player.update(delta_time);
+    self.terrain.keep_in_bounds(&self.player.bounds);
 }
 
 pub fn init() !Engine {
@@ -135,10 +154,24 @@ pub fn init() !Engine {
     const win = window.?;
     const ren = renderer.?;
 
+    var terrain: Terrain = undefined;
+    var safe_area: sdl.SDL_Rect = undefined;
+    if (!sdl.SDL_GetWindowSafeArea(win, &safe_area)) {
+        sdl.SDL_LogCritical(sdl.SDL_LOG_CATEGORY_APPLICATION, "could not get window safe area: %s", sdl.SDL_GetError());
+        return error.InternalError;
+    }
+    terrain.bounds = .{
+        .x = @floatFromInt(safe_area.x),
+        .y = @floatFromInt(safe_area.y),
+        .w = @floatFromInt(safe_area.w),
+        .h = @floatFromInt(safe_area.h),
+    };
+
     return Engine{
         .window = win,
         .renderer = ren,
         .running = true,
+        .terrain = terrain,
     };
 }
 
