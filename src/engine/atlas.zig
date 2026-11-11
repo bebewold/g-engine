@@ -11,7 +11,7 @@ const utils = @import("utils.zig");
 //  Currently assumes frames are on the same row
 //  and have uniform dimension
 // ----------------------------------------
-pub const Self = @This(); 
+pub const Self = @This();
 texture: *const sdl.SDL_Texture,
 texture_width: f32,
 texture_height: f32,
@@ -80,14 +80,10 @@ pub fn slice(
 
     return arr;
 }
- 
+
 pub inline fn ref_texture(self: *const Self) *const sdl.SDL_Texture {
     return self.texture;
 }
-
-
-
-
 
 const testing = std.testing;
 test "init func" {
