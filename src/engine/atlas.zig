@@ -2,21 +2,30 @@ const std = @import("std");
 const sdl = @import("sdl");
 const utils = @import("utils.zig");
 
-pub const Atlas = @This();
-
-texture: *sdl.SDL_Texture,
+// ----------------------------------------
+//  Description:
+//  Abstraction over sdl.SDL_Texture that
+//  manages texture loading and sprite sheet slicing.
+//
+//  Notice:
+//  Currently assumes frames are on the same row
+//  and have uniform dimension
+// ----------------------------------------
+pub const Self = @This(); 
+texture: *const sdl.SDL_Texture,
 texture_width: f32,
 texture_height: f32,
 
 pub fn init(
     renderer: *sdl.SDL_Renderer,
     file_path: [:0]const u8,
-) !Atlas {
+) !Self {
     const surface = sdl.IMG_Load(file_path);
+    defer sdl.SDL_DestroySurface(surface);
+
     const texture = sdl.SDL_CreateTextureFromSurface(renderer, surface) orelse {
         return error.SDLError;
     };
-    sdl.SDL_DestroySurface(surface);
 
     // safety purposes
     var tex_w: f32 = 0;
@@ -25,7 +34,7 @@ pub fn init(
         return error.SDLError;
     }
 
-    return Atlas{
+    return Self{
         .texture = texture,
         .texture_width = tex_w,
         .texture_height = tex_h,
@@ -37,11 +46,12 @@ pub fn init(
 // - the same length
 // else it will break
 pub fn slice(
-    self: Atlas,
+    self: *const Self,
     allocator: std.mem.Allocator,
     coords: struct { x: f32, y: f32 },
     size: struct { w: f32, h: f32 },
     length: u8,
+    spacing: f16,
 ) ![]sdl.SDL_FRect {
     const end_x = coords.x + (size.w * length);
     const end_y = coords.y + size.h;
@@ -56,7 +66,8 @@ pub fn slice(
     const arr = try allocator.alloc(sdl.SDL_FRect, length);
 
     for (0..length) |i| {
-        const x_pos = coords.x + (utils.FfromI(f32, i) * size.w);
+        const f = utils.FfromI(f32, i);
+        const x_pos = coords.x + (f * (size.w + spacing));
         const y_pos = coords.y;
 
         arr[i] = sdl.SDL_FRect{
@@ -69,6 +80,14 @@ pub fn slice(
 
     return arr;
 }
+ 
+pub inline fn ref_texture(self: *const Self) *const sdl.SDL_Texture {
+    return self.texture;
+}
+
+
+
+
 
 const testing = std.testing;
 test "init func" {
@@ -80,12 +99,12 @@ test "init func" {
         return error.SDLError;
     }
 
-    _ = try Atlas.init(
+    _ = try Self.init(
         renderer.?,
         "./texture/mock.png",
     );
 
-    try testing.expectError(error.SDLError, Atlas.init(
+    try testing.expectError(error.SDLError, Self.init(
         renderer.?,
         "./texture/not_existant.png",
     ));
@@ -102,7 +121,7 @@ test "slice func" {
         return error.SDLError;
     }
 
-    const atlas: Atlas = try .init(
+    const atlas: Self = try .init(
         renderer.?,
         "./texture/mock.png",
     );
