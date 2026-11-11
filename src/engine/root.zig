@@ -65,40 +65,50 @@ fn handleEvents(self: *Engine) void {
                 self.running = false;
                 return;
             },
-            sdl.SDL_EVENT_KEY_DOWN => {
-                switch (event.key.key) {
-                    sdl.SDLK_ESCAPE => {
-                        self.running = false;
-                        return;
-                    },
-                    sdl.SDLK_A => {
-                        self.player.direction.x = -1;
-                    },
-                    sdl.SDLK_D => {
-                        self.player.direction.x = 1;
-                    },
-                    sdl.SDLK_W => {
-                        self.player.direction.y = -1;
-                    },
-                    sdl.SDLK_S => {
-                        self.player.direction.y = 1;
-                    },
-                    else => {},
-                }
-            },
             sdl.SDL_EVENT_KEY_UP => {
-                switch (event.key.key) {
-                    sdl.SDLK_A, sdl.SDLK_D => {
-                        self.player.direction.x = 0;
-                    },
-                    sdl.SDLK_W, sdl.SDLK_S => {
-                        self.player.direction.y = 0;
-                    },
-                    else => {},
-                }
+                const kb_event = event.key;
+                self.handleKeyUp(kb_event.key);
+            },
+            sdl.SDL_EVENT_KEY_DOWN => {
+                const kb_event = event.key;
+                self.handleKeyDown(kb_event.key);
             },
             else => {},
         }
+    }
+}
+
+fn handleKeyDown(self: *Engine, key: c_uint) void {
+    switch (key) {
+        sdl.SDLK_ESCAPE => {
+            self.running = false;
+            return;
+        },
+        sdl.SDLK_A => {
+            self.player.direction.x = -1;
+        },
+        sdl.SDLK_D => {
+            self.player.direction.x = 1;
+        },
+        sdl.SDLK_W => {
+            self.player.direction.y = -1;
+        },
+        sdl.SDLK_S => {
+            self.player.direction.y = 1;
+        },
+        else => {},
+    }
+}
+
+fn handleKeyUp(self: *Engine, key: c_uint) void {
+    switch (key) {
+        sdl.SDLK_A, sdl.SDLK_D => {
+            self.player.direction.x = 0;
+        },
+        sdl.SDLK_W, sdl.SDLK_S => {
+            self.player.direction.y = 0;
+        },
+        else => {},
     }
 }
 
