@@ -96,7 +96,7 @@ fn handleEvents(self: *Engine) !void {
     }
 }
 
-fn handleKeyDown(self: *Engine, key: c_uint) void {
+inline fn handleKeyDown(self: *Engine, key: c_uint) void {
     switch (key) {
         sdl.SDLK_ESCAPE => {
             self.running = false;
@@ -118,7 +118,7 @@ fn handleKeyDown(self: *Engine, key: c_uint) void {
     }
 }
 
-fn handleKeyUp(self: *Engine, key: c_uint) void {
+inline fn handleKeyUp(self: *Engine, key: c_uint) void {
     switch (key) {
         sdl.SDLK_A, sdl.SDLK_D => {
             self.player.direction.x = 0;
