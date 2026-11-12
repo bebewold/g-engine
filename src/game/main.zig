@@ -1,8 +1,13 @@
 const std = @import("std");
 const g_engine = @import("g_engine");
+const Engine = g_engine.Engine;
 
-pub fn main() !void {
-    var engine: g_engine.Engine = try .init();
-    defer engine.shutdown();
+pub fn main(init: std.process.Init) !void {
+    var engine: *Engine = try .init(init.gpa);
+    defer {
+        engine.shutdown();
+        engine.free(init.gpa);
+    }
+
     try engine.run();
 }
