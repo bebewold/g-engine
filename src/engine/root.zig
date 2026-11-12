@@ -2,13 +2,23 @@ const std = @import("std");
 const sdl = @import("sdl");
 const helper = @import("sdl_helper.zig");
 
+const Allocator = std.mem.Allocator;
+
+pub const Terrain = @import("Terrain.zig");
+pub const UpdatableObject = @import("UpdatableObject.zig");
+pub const Renderable = @import("Renderable.zig");
+
 pub const Engine = @This();
 
 window: *sdl.SDL_Window,
 renderer: *sdl.SDL_Renderer,
 running: bool,
 
+inner_updatables: std.ArrayListUnmanaged(UpdatableObject) = .empty,
+renderables: std.ArrayListUnmanaged(Renderable) = .empty,
+
 player: Player = .init,
+terrain: Terrain,
 
 pub fn run(self: *Engine) !void {
     const target_fps: u32 = 60;
@@ -19,22 +29,17 @@ pub fn run(self: *Engine) !void {
     while (self.running) {
         frame_start = sdl.SDL_GetTicks();
 
-        self.handleEvents();
+        try self.handleEvents();
         if (!self.running) break;
 
         // Game logic update
         self.update(delta_time);
 
+        self.render() catch {
+            sdl.SDL_LogError(sdl.SDL_LOG_CATEGORY_RENDER, "Can't render screen: %s", sdl.SDL_GetError());
+            break;
+        };
         // Apply changes to screen
-        try helper.SDLCheck(
-            sdl.SDL_SetRenderDrawColor(self.renderer, 30, 30, 60, 255),
-            "error setting draw color",
-        );
-        try helper.SDLCheck(
-            sdl.SDL_RenderClear(self.renderer),
-            "error clearing the rendering buffer",
-        );
-        try self.player.render(self.renderer);
         try helper.SDLCheck(
             sdl.SDL_RenderPresent(self.renderer),
             "error presenting the render buffer",
@@ -56,58 +61,104 @@ pub fn shutdown(self: *Engine) void {
     sdl.SDL_Quit();
 }
 
-fn handleEvents(self: *Engine) void {
+fn handleEvents(self: *Engine) !void {
     var event: sdl.SDL_Event = undefined;
 
     while (sdl.SDL_PollEvent(&event)) {
         switch (event.type) {
             sdl.SDL_EVENT_QUIT => {
+                _ = event.quit;
                 self.running = false;
                 return;
             },
-            sdl.SDL_EVENT_KEY_DOWN => {
-                switch (event.key.key) {
-                    sdl.SDLK_ESCAPE => {
-                        self.running = false;
-                        return;
-                    },
-                    sdl.SDLK_A => {
-                        self.player.direction.x = -1;
-                    },
-                    sdl.SDLK_D => {
-                        self.player.direction.x = 1;
-                    },
-                    sdl.SDLK_W => {
-                        self.player.direction.y = -1;
-                    },
-                    sdl.SDLK_S => {
-                        self.player.direction.y = 1;
-                    },
-                    else => {},
-                }
-            },
             sdl.SDL_EVENT_KEY_UP => {
-                switch (event.key.key) {
-                    sdl.SDLK_A, sdl.SDLK_D => {
-                        self.player.direction.x = 0;
-                    },
-                    sdl.SDLK_W, sdl.SDLK_S => {
-                        self.player.direction.y = 0;
-                    },
-                    else => {},
-                }
+                const kb_event = event.key;
+                self.handleKeyUp(kb_event.key);
+            },
+            sdl.SDL_EVENT_KEY_DOWN => {
+                const kb_event = event.key;
+                self.handleKeyDown(kb_event.key);
+            },
+            sdl.SDL_EVENT_WINDOW_RESIZED => {
+                _ = event.window;
+
+                var safe_area: sdl.SDL_Rect = undefined;
+                try helper.SDLCheck(
+                    sdl.SDL_GetWindowSafeArea(self.window, &safe_area),
+                    "could not get safe area",
+                );
+                self.terrain.bounds = .{
+                    .x = @floatFromInt(safe_area.x),
+                    .y = @floatFromInt(safe_area.y),
+                    .w = @floatFromInt(safe_area.w),
+                    .h = @floatFromInt(safe_area.h),
+                };
             },
             else => {},
         }
     }
 }
 
-fn update(self: *Engine, delta_time: f32) void {
-    // Game logic
-    try self.player.update(delta_time);
+inline fn handleKeyDown(self: *Engine, key: c_uint) void {
+    switch (key) {
+        sdl.SDLK_ESCAPE => {
+            self.running = false;
+            return;
+        },
+        sdl.SDLK_A => {
+            self.player.direction.x = -1;
+        },
+        sdl.SDLK_D => {
+            self.player.direction.x = 1;
+        },
+        sdl.SDLK_W => {
+            self.player.direction.y = -1;
+        },
+        sdl.SDLK_S => {
+            self.player.direction.y = 1;
+        },
+        else => {},
+    }
 }
 
-pub fn init() !Engine {
+inline fn handleKeyUp(self: *Engine, key: c_uint) void {
+    switch (key) {
+        sdl.SDLK_A, sdl.SDLK_D => {
+            self.player.direction.x = 0;
+        },
+        sdl.SDLK_W, sdl.SDLK_S => {
+            self.player.direction.y = 0;
+        },
+        else => {},
+    }
+}
+
+fn update(self: *Engine, delta_time: f32) void {
+    // Game logic
+    for (self.inner_updatables.items) |obj| {
+        obj.update(delta_time);
+    }
+    self.terrain.keep_in_bounds(&self.player.bounds);
+}
+
+fn render(self: *Engine) !void {
+    const renderer = self.renderer;
+
+    try helper.SDLCheck(
+        sdl.SDL_SetRenderDrawColor(self.renderer, 30, 30, 60, 255),
+        "error setting draw color",
+    );
+    try helper.SDLCheck(
+        sdl.SDL_RenderClear(self.renderer),
+        "error clearing the rendering buffer",
+    );
+
+    for (self.renderables.items) |r| {
+        try r.render(renderer);
+    }
+}
+
+pub fn init(alloc: Allocator) !*Engine {
     if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO)) {
         sdl.SDL_Log("Init failed: %s", sdl.SDL_GetError());
         return error.InternalError;
@@ -125,11 +176,38 @@ pub fn init() !Engine {
     const win = window.?;
     const ren = renderer.?;
 
-    return Engine{
+    var safe_area: sdl.SDL_Rect = undefined;
+    if (!sdl.SDL_GetWindowSafeArea(win, &safe_area)) {
+        sdl.SDL_LogCritical(sdl.SDL_LOG_CATEGORY_APPLICATION, "could not get window safe area: %s", sdl.SDL_GetError());
+        return error.InternalError;
+    }
+    const terrain: Terrain = .{ .bounds = .{
+        .x = @floatFromInt(safe_area.x),
+        .y = @floatFromInt(safe_area.y),
+        .w = @floatFromInt(safe_area.w),
+        .h = @floatFromInt(safe_area.h),
+    } };
+
+    var engine: *Engine = try alloc.create(Engine);
+    errdefer alloc.destroy(engine);
+
+    engine.* = Engine{
         .window = win,
         .renderer = ren,
         .running = true,
+        .terrain = terrain,
     };
+
+    try engine.inner_updatables.append(alloc, engine.player.updatable_object());
+    try engine.renderables.append(alloc, engine.player.renderable());
+
+    return engine;
+}
+
+pub fn deinit(self: *Engine, alloc: Allocator) void {
+    defer alloc.destroy(self);
+    self.inner_updatables.deinit(alloc);
+    self.renderables.deinit(alloc);
 }
 
 const Player = struct {
@@ -147,12 +225,20 @@ const Player = struct {
 
     const init: Player = .{};
 
-    fn update(self: *Player, delta_time: f32) !void {
+    pub fn update(self: *Player, delta_time: f32) void {
         self.bounds.x += delta_time * self.speed * self.direction.x;
         self.bounds.y += delta_time * self.speed * self.direction.y;
     }
-    fn render(self: *Player, renderer: *sdl.SDL_Renderer) !void {
+    pub fn render(self: *Player, renderer: *sdl.SDL_Renderer) !void {
         _ = sdl.SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
         _ = sdl.SDL_RenderFillRect(renderer, &self.bounds);
+    }
+
+    fn updatable_object(self: *Player) UpdatableObject {
+        return .init(self);
+    }
+
+    fn renderable(self: *Player) Renderable {
+        return .init(self);
     }
 };
