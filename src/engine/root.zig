@@ -14,8 +14,8 @@ window: *sdl.SDL_Window,
 renderer: *sdl.SDL_Renderer,
 running: bool,
 
-inner_updatables: [1]UpdatableObject = undefined, // FIXME: 1 is a temp value, handle with a resizable array
-renderables: [1]Renderable = undefined, // FIXME: 1 is a temp value, handle with a resizable array
+inner_updatables: std.ArrayListUnmanaged(UpdatableObject) = .empty,
+renderables: std.ArrayListUnmanaged(Renderable) = .empty,
 
 player: Player = .init,
 terrain: Terrain,
@@ -135,7 +135,7 @@ inline fn handleKeyUp(self: *Engine, key: c_uint) void {
 
 fn update(self: *Engine, delta_time: f32) void {
     // Game logic
-    for (self.inner_updatables) |obj| {
+    for (self.inner_updatables.items) |obj| {
         obj.update(delta_time);
     }
     self.terrain.keep_in_bounds(&self.player.bounds);
@@ -153,7 +153,7 @@ fn render(self: *Engine) !void {
         "error clearing the rendering buffer",
     );
 
-    for (self.renderables) |r| {
+    for (self.renderables.items) |r| {
         try r.render(renderer);
     }
 }
@@ -198,14 +198,16 @@ pub fn init(alloc: Allocator) !*Engine {
         .terrain = terrain,
     };
 
-    engine.inner_updatables = [_]UpdatableObject{engine.player.updatable_object()};
-    engine.renderables = [_]Renderable{engine.player.renderable()};
+    try engine.inner_updatables.append(alloc, engine.player.updatable_object());
+    try engine.renderables.append(alloc, engine.player.renderable());
 
     return engine;
 }
 
-pub fn free(self: *Engine, alloc: Allocator) void {
+pub fn deinit(self: *Engine, alloc: Allocator) void {
     defer alloc.destroy(self);
+    self.inner_updatables.deinit(alloc);
+    self.renderables.deinit(alloc);
 }
 
 const Player = struct {
