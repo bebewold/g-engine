@@ -15,7 +15,6 @@ texture: *const sdl.SDL_Texture,
 texture_width: f32,
 texture_height: f32,
 
-
 pub fn init(
     renderer: *sdl.SDL_Renderer,
     file_path: [:0]const u8,
@@ -34,7 +33,7 @@ pub fn init(
         return error.SDLError;
     }
 
-    return Atlas {
+    return Atlas{
         .texture = texture,
         .texture_width = tex_w,
         .texture_height = tex_h,
@@ -127,18 +126,14 @@ test "slice func" {
     const animation = try atlas.slice(allocator, .{ .x = 1, .y = 1 }, .{ .w = 16, .h = 16 }, 4);
     try testing.expect(animation.len == 4);
 
-    try testing.expectError(error.AtlasOutOfBounds, atlas.slice(
-        allocator,
-        1, 1,
-        16, 16,
-        250,
-        1.0
-    ));
+    try testing.expectError(error.AtlasOutOfBounds, atlas.slice(allocator, 1, 1, 16, 16, 250, 1.0));
 
     try testing.expectError(error.AtlasOutOfBounds, atlas.slice(
         allocator,
-        1, 1,
-        16, 40000000000,
+        1,
+        1,
+        16,
+        40000000000,
         1,
         1.0,
     ));

@@ -177,7 +177,7 @@ const Player = struct {
         allocator: std.mem.Allocator,
     ) !Player {
         const idle_animation = try atlas.slice(allocator, 1, 1, 16, 16, 1, 1);
-        const run_animation = try atlas.slice(allocator, 1, 1 , 16, 16, 4, 1);
+        const run_animation = try atlas.slice(allocator, 1, 1, 16, 16, 4, 1);
 
         return Player{
             .texture = atlas.ref_texture(),
