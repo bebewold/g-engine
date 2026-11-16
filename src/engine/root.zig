@@ -2,8 +2,7 @@ const std = @import("std");
 const sdl = @import("sdl");
 
 const helper = @import("sdl_helper.zig");
-const utils = @import("utils.zig");
-const atlas_lib = @import("atlas.zig");
+const Atlas = @import("atlas.zig");
 
 pub const Engine = @This();
 
@@ -130,7 +129,7 @@ pub fn init(allocator: std.mem.Allocator) !Engine {
     }
 
     // creates a texture
-    const atlas: atlas_lib.Self = try .init(
+    const atlas: Atlas = try .init(
         renderer.?,
         "./texture/sprite_sheet.png",
     );
@@ -174,11 +173,11 @@ const Player = struct {
     speed: f32 = 100.0,
 
     pub fn init(
-        atlas: *const atlas_lib.Self,
+        atlas: *const Atlas,
         allocator: std.mem.Allocator,
     ) !Player {
-        const idle_animation = try atlas.slice(allocator, .{ .x = 1, .y = 1 }, .{ .w = 16, .h = 16 }, 1, 1);
-        const run_animation = try atlas.slice(allocator, .{ .x = 1, .y = 1 }, .{ .w = 16, .h = 16 }, 4, 1);
+        const idle_animation = try atlas.slice(allocator, 1, 1, 16, 16, 1, 1);
+        const run_animation = try atlas.slice(allocator, 1, 1 , 16, 16, 4, 1);
 
         return Player{
             .texture = atlas.ref_texture(),

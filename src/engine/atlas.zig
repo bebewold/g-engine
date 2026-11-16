@@ -1,6 +1,5 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const utils = @import("utils.zig");
 
 // ----------------------------------------
 //  Description:
@@ -11,15 +10,16 @@ const utils = @import("utils.zig");
 //  Currently assumes frames are on the same row
 //  and have uniform dimension
 // ----------------------------------------
-pub const Self = @This();
+pub const Atlas = @This();
 texture: *const sdl.SDL_Texture,
 texture_width: f32,
 texture_height: f32,
 
+
 pub fn init(
     renderer: *sdl.SDL_Renderer,
     file_path: [:0]const u8,
-) !Self {
+) !Atlas {
     const surface = sdl.IMG_Load(file_path);
     defer sdl.SDL_DestroySurface(surface);
 
@@ -34,7 +34,7 @@ pub fn init(
         return error.SDLError;
     }
 
-    return Self{
+    return Atlas {
         .texture = texture,
         .texture_width = tex_w,
         .texture_height = tex_h,
@@ -46,15 +46,17 @@ pub fn init(
 // - the same length
 // else it will break
 pub fn slice(
-    self: *const Self,
+    self: *const Atlas,
     allocator: std.mem.Allocator,
-    coords: struct { x: f32, y: f32 },
-    size: struct { w: f32, h: f32 },
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
     length: u8,
     spacing: f16,
 ) ![]sdl.SDL_FRect {
-    const end_x = coords.x + (size.w * length);
-    const end_y = coords.y + size.h;
+    const end_x = x + (w * length);
+    const end_y = y + h;
 
     if (end_x > self.texture_width) {
         return error.AtlasOutOfBounds;
@@ -66,22 +68,22 @@ pub fn slice(
     const arr = try allocator.alloc(sdl.SDL_FRect, length);
 
     for (0..length) |i| {
-        const f = utils.FfromI(f32, i);
-        const x_pos = coords.x + (f * (size.w + spacing));
-        const y_pos = coords.y;
+        const f: f32 = @floatFromInt(i);
+        const x_pos = x + (f * (w + spacing));
+        const y_pos = y;
 
         arr[i] = sdl.SDL_FRect{
             .x = x_pos,
             .y = y_pos,
-            .w = size.w,
-            .h = size.h,
+            .w = w,
+            .h = h,
         };
     }
 
     return arr;
 }
 
-pub inline fn ref_texture(self: *const Self) *const sdl.SDL_Texture {
+pub inline fn ref_texture(self: *const Atlas) *const sdl.SDL_Texture {
     return self.texture;
 }
 
@@ -95,12 +97,12 @@ test "init func" {
         return error.SDLError;
     }
 
-    _ = try Self.init(
+    _ = try Atlas.init(
         renderer.?,
         "./texture/mock.png",
     );
 
-    try testing.expectError(error.SDLError, Self.init(
+    try testing.expectError(error.SDLError, Atlas.init(
         renderer.?,
         "./texture/not_existant.png",
     ));
@@ -117,7 +119,7 @@ test "slice func" {
         return error.SDLError;
     }
 
-    const atlas: Self = try .init(
+    const atlas: Atlas = try .init(
         renderer.?,
         "./texture/mock.png",
     );
@@ -127,15 +129,17 @@ test "slice func" {
 
     try testing.expectError(error.AtlasOutOfBounds, atlas.slice(
         allocator,
-        .{ .x = 1, .y = 1 },
-        .{ .w = 16, .h = 16 },
+        1, 1,
+        16, 16,
         250,
+        1.0
     ));
 
     try testing.expectError(error.AtlasOutOfBounds, atlas.slice(
         allocator,
-        .{ .x = 1, .y = 1 },
-        .{ .w = 16, .h = 40000000000 },
+        1, 1,
+        16, 40000000000,
         1,
+        1.0,
     ));
 }
