@@ -20,6 +20,15 @@
             vulkan-loader
             xorg.libX11
             wayland
+            libxkbcommon
+            xorg.libX11
+            xorg.libXext
+            xorg.libXcursor
+            xorg.libXrandr
+            xorg.libXi
+            xorg.libXinerama
+            xorg.libXxf86vm
+            xorg.libXfixes
         ];
       in
       {
